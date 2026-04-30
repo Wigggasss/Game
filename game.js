@@ -1,121 +1,130 @@
-let coins = 0;
-let psuCapacity = 500;
-let gpuCount = 1;
-let baseTDP = 185; 
-let temp = 35;
-let ocLevel = 0;
-let coolingActive = false;
-
-const logBox = document.getElementById('system-log');
-
-function log(msg, cls = "") {
-    let div = document.createElement('div');
-    div.className = "log-entry " + cls;
-    div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
-    logBox.prepend(div);
-    if (logBox.childNodes.length > 8) logBox.removeChild(logBox.lastChild);
+// --- CONFIGURATION & CLASSES ---
+class GPU {
+    constructor(id, name, hash, tdp, cost) {
+        this.id = id; this.name = name; this.hash = hash; 
+        this.tdp = tdp; this.cost = cost; this.count = 0;
+    }
 }
 
-function updateUI() {
-    let ocMultiplier = 1 + (ocLevel / 100);
-    let currentDraw = gpuCount * baseTDP * (1 + (ocLevel/150));
-    let hashRate = (gpuCount * 25) * ocMultiplier;
+class GameEngine {
+    constructor() {
+        this.coins = 0;
+        this.marketPrice = 1.25;
+        this.psuCapacity = 600;
+        this.temp = 32;
+        this.isCrashed = false;
+        
+        this.hardware = [
+            new GPU('rx580', 'RX 580', 25, 185, 50),
+            new GPU('rtx3060', 'RTX 3060', 60, 170, 280),
+            new GPU('rtx4090', 'RTX 4090', 180, 450, 1200),
+            new GPU('h100', 'NVIDIA H100', 900, 700, 8500)
+        ];
 
-    if (temp > 90) {
-        hashRate *= 0.4;
-        log("WARNING: Thermal throttling active!", "critical");
+        this.init();
     }
 
-    document.getElementById('coins').innerText = coins.toFixed(4);
-    document.getElementById('hashrate').innerText = hashRate.toFixed(1);
-    document.getElementById('power-draw').innerText = Math.round(currentDraw);
-    document.getElementById('psu-cap').innerText = psuCapacity;
-    document.getElementById('temp-reading').innerText = Math.round(temp);
-    document.getElementById('oc-val').innerText = ocLevel;
-    document.getElementById('risk-val').innerText = (ocLevel > 20) ? (ocLevel - 20) * 2 : 0;
+    init() {
+        setTimeout(() => {
+            document.getElementById('boot-screen').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            this.renderShop();
+            this.startLoops();
+            this.log("KERNEL LOADED. HARDWARE SCAN COMPLETE.");
+        }, 1500);
 
-    let pwrPercent = (currentDraw / psuCapacity) * 100;
-    let pwrFill = document.getElementById('power-fill');
-    pwrFill.style.width = Math.min(pwrPercent, 100) + "%";
-    pwrFill.className = pwrPercent > 90 ? "fill critical-fill" : (pwrPercent > 75 ? "fill warning-fill" : "fill");
-
-    let tempPercent = ((temp - 30) / 70) * 100;
-    let tempFill = document.getElementById('temp-fill');
-    tempFill.style.width = Math.min(tempPercent, 100) + "%";
-    tempFill.className = temp > 85 ? "fill critical-fill" : (temp > 70 ? "fill warning-fill" : "fill");
-
-    if (currentDraw > psuCapacity) {
-        alert("BLACK SCREEN: PSU Overload! System shut down.");
-        location.reload();
+        document.getElementById('manual-mine').addEventListener('click', () => this.pulse());
     }
 
-    if (ocLevel > 25 && Math.random() < ((ocLevel - 25) / 500)) {
-        createArtifact();
-        if (Math.random() < 0.05) {
-            alert("CRITICAL: Driver Timeout! Overclock too high.");
-            location.reload();
+    pulse() {
+        if (this.isCrashed) return;
+        this.coins += 0.1;
+        this.temp += 0.5;
+        this.updateUI();
+    }
+
+    buyGPU(id) {
+        const gpu = this.hardware.find(g => g.id === id);
+        if (this.coins >= gpu.cost) {
+            this.coins -= gpu.cost;
+            gpu.count++;
+            this.log(`PROCURED: ${gpu.name} INSTALLED IN SLOT ${gpu.count}`);
+            this.updateUI();
         }
     }
 
-    document.getElementById('buy-gpu-btn').disabled = coins < 50;
-    document.getElementById('buy-psu-btn').disabled = coins < 120;
-    document.getElementById('buy-cool-btn').disabled = (coins < 300 || coolingActive);
-}
+    log(msg) {
+        const stream = document.getElementById('log-stream');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerText = `> ${msg}`;
+        stream.prepend(entry);
+    }
 
-function mine() {
-    coins += 0.5;
-    temp += (coolingActive ? 0.1 : 0.4);
-    updateUI();
-}
+    updateUI() {
+        let totalDraw = 0;
+        let totalHash = 0;
 
-function buyGPU() {
-    if (coins >= 50) {
-        coins -= 50;
-        gpuCount++;
-        log(`Added GPU #${gpuCount}: RX 580 online.`);
-        updateUI();
+        this.hardware.forEach(gpu => {
+            totalDraw += (gpu.count * gpu.tdp);
+            totalHash += (gpu.count * gpu.hash);
+            const btn = document.getElementById(`buy-${gpu.id}`);
+            if (btn) btn.disabled = this.coins < gpu.cost;
+        });
+
+        // Power Check
+        if (totalDraw > this.psuCapacity) this.triggerCrash("PSU_FAILURE: OVERCURRENT");
+
+        // Thermal Check
+        if (this.temp > 95) totalHash *= 0.1; // Thermal Throttling
+
+        document.getElementById('coins').innerText = this.coins.toFixed(6);
+        document.getElementById('pwr-val').innerText = totalDraw;
+        document.getElementById('pwr-bar').style.width = Math.min((totalDraw / this.psuCapacity) * 100, 100) + "%";
+        document.getElementById('temp-val').innerText = Math.round(this.temp);
+        document.getElementById('temp-bar').style.width = Math.min(this.temp, 100) + "%";
+    }
+
+    triggerCrash(reason) {
+        this.isCrashed = true;
+        document.body.classList.add('glitch-active');
+        this.log(`CRITICAL_ERROR: ${reason}`);
+        setTimeout(() => location.reload(), 3000);
+    }
+
+    renderShop() {
+        const container = document.getElementById('gpu-shop');
+        this.hardware.forEach(gpu => {
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `
+                <span>${gpu.name} ($${gpu.cost})</span>
+                <button id="buy-${gpu.id}" onclick="game.buyGPU('${gpu.id}')">BUY</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    startLoops() {
+        // Passive Income & Cooling
+        setInterval(() => {
+            if (this.isCrashed) return;
+            
+            let currentHash = 0;
+            this.hardware.forEach(g => currentHash += g.count * g.hash);
+            
+            this.coins += (currentHash * 0.0001);
+            if (this.temp > 30) this.temp -= 0.5; // Natural dissipation
+            
+            this.updateUI();
+        }, 1000);
+
+        // Market Fluctuation
+        setInterval(() => {
+            this.marketPrice += (Math.random() - 0.5) * 0.1;
+            document.getElementById('market-price').innerText = this.marketPrice.toFixed(2);
+        }, 5000);
     }
 }
 
-function buyPSU() {
-    if (coins >= 120) {
-        coins -= 120;
-        psuCapacity += 400;
-        log(`New PSU Installed: ${psuCapacity}W limit.`);
-        updateUI();
-    }
-}
-
-function installCooling() {
-    if (coins >= 300) {
-        coins -= 300;
-        coolingActive = true;
-        log(`Liquid Cooling Loop initialized.`);
-        updateUI();
-    }
-}
-
-function createArtifact() {
-    const overlay = document.getElementById('artifact-overlay');
-    const art = document.createElement('div');
-    art.className = 'artifact';
-    art.style.left = Math.random() * 100 + "vw";
-    art.style.top = Math.random() * 100 + "vh";
-    overlay.appendChild(art);
-    setTimeout(() => art.remove(), 200);
-}
-
-document.getElementById('oc-slider').addEventListener('input', (e) => {
-    ocLevel = parseInt(e.target.value);
-    updateUI();
-});
-
-setInterval(() => {
-    let coolRate = coolingActive ? 1.5 : 0.5;
-    if (temp > 35) temp -= coolRate;
-    coins += (gpuCount * 0.02 * (1 + (ocLevel / 100)));
-    updateUI();
-}, 1000);
-
-log("System online. Looking for hardware...");
-updateUI();
+const game = new GameEngine();
