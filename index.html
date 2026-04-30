@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Silicon Tycoon | v0.1 Alpha</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-container">
+        <div class="header">
+            <h1>SILICON TYCOON <span class="version">System v1.0.2</span></h1>
+            <div id="stats">
+                COINS: <span id="coins">0.0000</span> SC | 
+                HASHRATE: <span id="hashrate">0</span> MH/s
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="monitor-panel">
+                <h3>LIVE VOLTAGE METER</h3>
+                <div class="meter-bar"><div id="power-fill" class="fill"></div></div>
+                <p><span id="power-draw">0</span>W / <span id="psu-cap">500</span>W</p>
+
+                <h3>THERMAL LOAD</h3>
+                <div class="meter-bar"><div id="temp-fill" class="fill"></div></div>
+                <p><span id="temp-reading">30</span>°C (Limit: 95°C)</p>
+            </div>
+
+            <div class="hardware-panel">
+                <button onclick="mine()">GENERATE HASH (CLICK)</button>
+                <button onclick="buyGPU('RX580')">BUY RX 580 (50 SC)</button>
+                <button onclick="buyPSU()">UPGRADE PSU (100 SC)</button>
+            </div>
+        </div>
+
+        <div id="system-log">
+            <div class="log-entry">[SYSTEM] Initializing dusty RX 580... Stable.</div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
