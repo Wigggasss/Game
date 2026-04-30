@@ -2,41 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Silicon Tycoon | v0.1 Alpha</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silicon Tycoon | v1.0 Gold</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="ui-container">
         <div class="header">
-            <h1>SILICON TYCOON <span class="version">System v1.0.2</span></h1>
-            <div id="stats">
-                COINS: <span id="coins">0.0000</span> SC | 
-                HASHRATE: <span id="hashrate">0</span> MH/s
+            <div>
+                <h1 style="margin:0;">SILICON TYCOON</h1>
+                <span class="version">BUILD_VER: 1.0.4_STABLE</span>
+            </div>
+            <div id="stats" style="text-align: right;">
+                <h2 style="margin:0;"><span id="coins">0.0000</span> SC</h2>
+                <small>HASHRATE: <span id="hashrate">0</span> MH/s</small>
             </div>
         </div>
 
         <div class="main-grid">
             <div class="monitor-panel">
-                <h3>LIVE VOLTAGE METER</h3>
+                <h3>VOLTAGE METER</h3>
                 <div class="meter-bar"><div id="power-fill" class="fill"></div></div>
                 <p><span id="power-draw">0</span>W / <span id="psu-cap">500</span>W</p>
 
                 <h3>THERMAL LOAD</h3>
                 <div class="meter-bar"><div id="temp-fill" class="fill"></div></div>
-                <p><span id="temp-reading">30</span>°C (Limit: 95°C)</p>
+                <p><span id="temp-reading">35</span>°C (Limit: 95°C)</p>
+                
+                <div style="margin-top:20px; padding:10px; background:#1a1a1a; border: 1px solid #333;">
+                    <strong>OVERCLOCK: +<span id="oc-val">0</span>%</strong><br>
+                    <input type="range" id="oc-slider" min="0" max="60" value="0">
+                    <small style="color:#666;">Risk of Driver Timeout: <span id="risk-val">0</span>%</small>
+                </div>
             </div>
 
             <div class="hardware-panel">
-                <button onclick="mine()">GENERATE HASH (CLICK)</button>
-                <button onclick="buyGPU('RX580')">BUY RX 580 (50 SC)</button>
-                <button onclick="buyPSU()">UPGRADE PSU (100 SC)</button>
+                <button onclick="mine()">MANUAL HASH (CLICK)</button>
+                <button id="buy-gpu-btn" onclick="buyGPU()">BUY RX 580 (50 SC)</button>
+                <button id="buy-psu-btn" onclick="buyPSU()">UPGRADE PSU (120 SC)</button>
+                <button id="buy-cool-btn" onclick="installCooling()">LIQUID COOLING (300 SC)</button>
             </div>
         </div>
 
-        <div id="system-log">
-            <div class="log-entry">[SYSTEM] Initializing dusty RX 580... Stable.</div>
-        </div>
+        <div id="system-log"></div>
     </div>
+
+    <div id="artifact-overlay"></div>
     <script src="game.js"></script>
 </body>
 </html>
